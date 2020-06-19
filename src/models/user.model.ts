@@ -14,7 +14,7 @@ export class User extends Entity {
     id: true,
     generated: true,
   })
-  ID_User?: number;
+  ID_User: number;
 
   @property({
     type: 'string',
@@ -34,12 +34,6 @@ export class User extends Entity {
     required: true,
   })
   Password: string;
-
-  @property({
-    type: 'string',
-    required: true,
-  })
-  Salt: string;
 
   @property({
     type: 'string',

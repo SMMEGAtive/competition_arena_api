@@ -14,3 +14,4 @@ export * from './role-change-request.model';
 export * from './score.model';
 export * from './submission.model';
 export * from './winner.model';
+export * from './credentials.model';
