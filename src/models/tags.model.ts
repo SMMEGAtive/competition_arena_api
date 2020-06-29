@@ -1,27 +1,27 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model({name: 'tb_chat_room'})
-export class ChatRoom extends Entity {
+@model({name: 'tb_tags'})
+export class Tags extends Entity {
   @property({
     type: 'number',
     id: true,
     generated: true,
   })
-  ID_Room?: number;
+  ID_Tags: number;
 
   @property({
     type: 'string',
     required: true,
   })
-  Room_Name: string;
+  Tag_Name: string;
 
-  constructor(data?: Partial<ChatRoom>) {
+  constructor(data?: Partial<Tags>) {
     super(data);
   }
 }
 
-export interface ChatRoomRelations {
+export interface TagsRelations {
   // describe navigational properties here
 }
 
-export type ChatRoomWithRelations = ChatRoom & ChatRoomRelations;
+export type TagsWithRelations = Tags & TagsRelations;

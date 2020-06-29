@@ -15,3 +15,5 @@ export * from './score.controller';
 export * from './submission.controller';
 export * from './user.controller';
 export * from './winner.controller';
+export * from './taglist.controller';
+export * from './tags.controller';

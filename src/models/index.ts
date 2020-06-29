@@ -15,3 +15,5 @@ export * from './score.model';
 export * from './submission.model';
 export * from './winner.model';
 export * from './credentials.model';
+export * from './taglist.model';
+export * from './tags.model';

@@ -1,3 +1,6 @@
+//
+// LOGIN
+//
 const LoginSchema = {
   properties: {
     email: {
@@ -17,6 +20,9 @@ export const LoginRequestBody = {
   content: {'application/json': {schema: LoginSchema}},
 };
 
+//
+// CHANGE PASSWORD
+//
 export type ChangePassword = {
   old_password: 'string';
   new_password: 'string';
@@ -37,6 +43,9 @@ export const ChangePasswordRequestBody = {
   content: {'application/json': {schema: ChangePasswordSchema}},
 };
 
+//
+// FORGOT PASSWORD
+//
 export type ForgotPassword = {
   new_password: 'string';
   new_password_reinput: 'string';
@@ -55,6 +64,9 @@ export const ForgotPasswordRequestBody = {
   content: {'application/json': {schema: ForgotPasswordSchema}},
 };
 
+//
+// REGISTER
+//
 export type Register = {
   Username: string;
   Email: string;
@@ -85,4 +97,117 @@ export const RegisterRequestBody = {
   description: 'Request Body fungsi Register',
   required: true,
   content: {'application/json': {schema: RegisterSchema}},
+};
+
+//
+// CREATE HOST
+//
+export type CreateHostTeam = {
+  Host_Name: string;
+  Members: number[];
+};
+
+const CreateHostTeamSchema = {
+  properties: {
+    Host_Name: {type: 'string'},
+    Members: {type: 'array', items: {type: 'number'}},
+  },
+};
+
+export const CreateHostTeamRequestBody = {
+  description: 'Request Body fungsi Create Host Team',
+  required: true,
+  content: {'application/json': {schema: CreateHostTeamSchema}},
+};
+
+//
+// UPDATE HOST
+//
+export type HostTeam = {
+  Host_Name: string;
+  Members: number[];
+};
+
+const HostTeamSchema = {
+  properties: {
+    Host_Name: {type: 'string'},
+    Members: {type: 'array', items: {type: 'number'}},
+  },
+};
+
+export const HostTeamRequestBody = {
+  description: 'Request Body fungsi Host Team',
+  required: true,
+  content: {'application/json': {schema: HostTeamSchema}},
+};
+
+//
+// CREATE PARTICIPANT
+//
+export type ParticipantTeam = {
+  Team_Name: string;
+  Members: number[];
+};
+
+const ParticipantTeamSchema = {
+  properties: {
+    Team_Name: {type: 'string'},
+    Members: {type: 'array', items: {type: 'number'}},
+  },
+};
+
+export const ParticipantTeamRequestBody = {
+  description: 'Request Body fungsi Participant Team',
+  required: true,
+  content: {'application/json': {schema: ParticipantTeamSchema}},
+};
+
+//
+// CREATE COMPETITION
+//
+export type CompetitionData = {
+  ID_Host: number;
+  Title: string;
+  Description: string;
+  Registration_Start: string;
+  Registration_End: string;
+  Verification_End: string;
+  Execution_Start: string;
+  Execution_End: string;
+  Announcement_Date: string;
+  Tags: string[];
+};
+
+const CompetitionSchema = {
+  properties: {
+    ID_Host: {type: 'number'},
+    Title: {type: 'string'},
+    Description: {type: 'string'},
+    Registration_Start: {type: 'string'},
+    Registration_End: {type: 'string'},
+    Verification_End: {type: 'string'},
+    Execution_Start: {type: 'string'},
+    Execution_End: {type: 'string'},
+    Announcement_Date: {type: 'string'},
+    Tags: {type: 'array', items: {type: 'string'}},
+  },
+};
+
+export const CompetitionRequestBody = {
+  description: 'Request Body fungsi Participant Team',
+  required: true,
+  content: {'application/json': {schema: CompetitionSchema}},
+};
+
+//
+// MISCTYPES
+//
+export type UserLimited = {ID_User: number; Username: string};
+export type HostLimited = {
+  ID_Host: number;
+  Host_Name: string;
+};
+export type ParticipantLimited = {
+  ID_Participant: number;
+  Team_Name: string;
 };

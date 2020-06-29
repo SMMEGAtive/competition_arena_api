@@ -23,14 +23,16 @@ import {ParticipationRepository} from '../repositories';
 export class ParticipationController {
   constructor(
     @repository(ParticipationRepository)
-    public participationRepository : ParticipationRepository,
+    public participationRepository: ParticipationRepository,
   ) {}
 
   @post('/participations', {
     responses: {
       '200': {
         description: 'Participation model instance',
-        content: {'application/json': {schema: getModelSchemaRef(Participation)}},
+        content: {
+          'application/json': {schema: getModelSchemaRef(Participation)},
+        },
       },
     },
   })
@@ -59,7 +61,8 @@ export class ParticipationController {
     },
   })
   async count(
-    @param.query.object('where', getWhereSchemaFor(Participation)) where?: Where<Participation>,
+    @param.query.object('where', getWhereSchemaFor(Participation))
+    where?: Where<Participation>,
   ): Promise<Count> {
     return this.participationRepository.count(where);
   }
@@ -77,7 +80,8 @@ export class ParticipationController {
     },
   })
   async find(
-    @param.query.object('filter', getFilterSchemaFor(Participation)) filter?: Filter<Participation>,
+    @param.query.object('filter', getFilterSchemaFor(Participation))
+    filter?: Filter<Participation>,
   ): Promise<Participation[]> {
     return this.participationRepository.find(filter);
   }
@@ -99,7 +103,8 @@ export class ParticipationController {
       },
     })
     participation: Participation,
-    @param.query.object('where', getWhereSchemaFor(Participation)) where?: Where<Participation>,
+    @param.query.object('where', getWhereSchemaFor(Participation))
+    where?: Where<Participation>,
   ): Promise<Count> {
     return this.participationRepository.updateAll(participation, where);
   }
@@ -108,7 +113,9 @@ export class ParticipationController {
     responses: {
       '200': {
         description: 'Participation model instance',
-        content: {'application/json': {schema: getModelSchemaRef(Participation)}},
+        content: {
+          'application/json': {schema: getModelSchemaRef(Participation)},
+        },
       },
     },
   })

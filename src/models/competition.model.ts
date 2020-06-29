@@ -1,6 +1,6 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model()
+@model({name: 'tb_competition'})
 export class Competition extends Entity {
   @property({
     type: 'number',
@@ -66,7 +66,6 @@ export class Competition extends Entity {
     required: true,
   })
   Announcement_Date: string;
-
 
   constructor(data?: Partial<Competition>) {
     super(data);

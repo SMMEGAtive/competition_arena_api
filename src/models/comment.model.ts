@@ -1,6 +1,6 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model()
+@model({name: 'tb_comment'})
 export class Comment extends Entity {
   @property({
     type: 'number',
@@ -42,7 +42,6 @@ export class Comment extends Entity {
     type: 'date',
   })
   Date_Modified?: string;
-
 
   constructor(data?: Partial<Comment>) {
     super(data);

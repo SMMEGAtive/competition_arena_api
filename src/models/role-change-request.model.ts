@@ -1,6 +1,6 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model()
+@model({name: 'tb_role_change_request'})
 export class RoleChangeRequest extends Entity {
   @property({
     type: 'number',
@@ -27,7 +27,6 @@ export class RoleChangeRequest extends Entity {
   })
   Date_Request: string;
 
-
   constructor(data?: Partial<RoleChangeRequest>) {
     super(data);
   }
@@ -37,4 +36,5 @@ export interface RoleChangeRequestRelations {
   // describe navigational properties here
 }
 
-export type RoleChangeRequestWithRelations = RoleChangeRequest & RoleChangeRequestRelations;
+export type RoleChangeRequestWithRelations = RoleChangeRequest &
+  RoleChangeRequestRelations;

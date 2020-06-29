@@ -14,3 +14,5 @@ export * from './score.repository';
 export * from './submission.repository';
 export * from './user.repository';
 export * from './winner.repository';
+export * from './tags.repository';
+export * from './taglist.repository';

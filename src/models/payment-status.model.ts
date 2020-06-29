@@ -1,6 +1,6 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model()
+@model({name: 'tb_payment_status'})
 export class PaymentStatus extends Entity {
   @property({
     type: 'number',
@@ -19,7 +19,6 @@ export class PaymentStatus extends Entity {
     required: true,
   })
   Status: number;
-
 
   constructor(data?: Partial<PaymentStatus>) {
     super(data);

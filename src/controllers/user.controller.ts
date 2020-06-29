@@ -41,7 +41,7 @@ import {CustomUserService} from '../services/user.service';
 import {genSalt, hash, compare} from 'bcryptjs';
 import {OPERATION_SECURITY_SPEC} from '../utils/security-spec';
 import jwt from 'jsonwebtoken';
-import crypto, {createSecretKey} from 'crypto';
+import crypto from 'crypto';
 import {Console} from 'console';
 
 const nodemailer = require('nodemailer');

@@ -1,6 +1,6 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model()
+@model({name: 'tb_host_member'})
 export class HostMember extends Entity {
   @property({
     type: 'number',
@@ -20,7 +20,6 @@ export class HostMember extends Entity {
     required: true,
   })
   ID_User: number;
-
 
   constructor(data?: Partial<HostMember>) {
     super(data);

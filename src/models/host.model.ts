@@ -1,13 +1,13 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model()
+@model({name: 'tb_host'})
 export class Host extends Entity {
   @property({
     type: 'number',
     id: true,
     generated: true,
   })
-  ID_Host?: number;
+  ID_Host: number;
 
   @property({
     type: 'string',
@@ -24,8 +24,7 @@ export class Host extends Entity {
   @property({
     type: 'date',
   })
-  Date_Modified?: string;
-
+  Date_Modified: string;
 
   constructor(data?: Partial<Host>) {
     super(data);

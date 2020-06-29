@@ -1,6 +1,6 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model()
+@model({name: 'tb_chat_message'})
 export class ChatMessage extends Entity {
   @property({
     type: 'number',
@@ -46,7 +46,6 @@ export class ChatMessage extends Entity {
     type: 'date',
   })
   Read_Time?: string;
-
 
   constructor(data?: Partial<ChatMessage>) {
     super(data);

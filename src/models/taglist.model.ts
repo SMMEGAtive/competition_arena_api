@@ -1,33 +1,33 @@
 import {Entity, model, property} from '@loopback/repository';
 
-@model({name: 'tb_chat_member'})
-export class ChatMember extends Entity {
+@model({name: 'tb_taglist'})
+export class Taglist extends Entity {
   @property({
     type: 'number',
     id: true,
     generated: true,
   })
-  ID_Member?: number;
+  ID_Taglist: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  ID_Room: number;
+  ID_Competition: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  ID_User: number;
+  ID_Tags: number;
 
-  constructor(data?: Partial<ChatMember>) {
+  constructor(data?: Partial<Taglist>) {
     super(data);
   }
 }
 
-export interface ChatMemberRelations {
+export interface TaglistRelations {
   // describe navigational properties here
 }
 
-export type ChatMemberWithRelations = ChatMember & ChatMemberRelations;
+export type TaglistWithRelations = Taglist & TaglistRelations;
