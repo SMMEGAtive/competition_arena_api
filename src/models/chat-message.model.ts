@@ -13,7 +13,7 @@ export class ChatMessage extends Entity {
     type: 'number',
     required: true,
   })
-  ID_Room: number;
+  ID_Room?: number;
 
   @property({
     type: 'number',
@@ -35,7 +35,7 @@ export class ChatMessage extends Entity {
     type: 'date',
     required: true,
   })
-  Sent_Time: string;
+  Sent_Time?: string;
 
   @property({
     type: 'date',

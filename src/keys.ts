@@ -4,6 +4,7 @@ import {TokenService, UserService} from '@loopback/authentication';
 import {User} from './models';
 import {UserRepository, Credentials} from './repositories';
 import {JWTService} from './services';
+import {FileUploadHandler} from './types';
 
 export namespace TokenServiceConstants {
   export const TOKEN_SECRET_VALUE = 'myjwts3cr3t';
@@ -46,3 +47,15 @@ export namespace JWTAuthenticationStrategyBindings {
     'services.authentication.jwt.tokenservice',
   );
 }
+
+/**
+ * Binding key for the file upload service
+ */
+export const FILE_UPLOAD_SERVICE = BindingKey.create<FileUploadHandler>(
+  'services.FileUpload',
+);
+
+/**
+ * Binding key for the storage directory
+ */
+export const STORAGE_DIRECTORY = BindingKey.create<string>('storage.directory');

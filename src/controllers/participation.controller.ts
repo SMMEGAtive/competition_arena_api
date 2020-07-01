@@ -18,15 +18,20 @@ import {
   requestBody,
 } from '@loopback/rest';
 import {Participation} from '../models';
-import {ParticipationRepository} from '../repositories';
+import {
+  ParticipationRepository,
+  PaymentStatusRepository,
+} from '../repositories';
 
 export class ParticipationController {
   constructor(
     @repository(ParticipationRepository)
     public participationRepository: ParticipationRepository,
+    @repository(PaymentStatusRepository)
+    public paymentRepository: PaymentStatusRepository,
   ) {}
 
-  @post('/participations', {
+  @post('/participations/new', {
     responses: {
       '200': {
         description: 'Participation model instance',

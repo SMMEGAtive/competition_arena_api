@@ -200,6 +200,64 @@ export const CompetitionRequestBody = {
 };
 
 //
+// PARTICIPATION
+//
+export type ParticipationData = {
+  ID_Participant: number;
+  ID_Competition: number;
+  Description: string;
+  Registration_Start: string;
+  Registration_End: string;
+  Verification_End: string;
+  Execution_Start: string;
+  Execution_End: string;
+  Announcement_Date: string;
+  Tags: string[];
+};
+
+const ParticipationSchema = {
+  properties: {
+    ID_Host: {type: 'number'},
+    Title: {type: 'string'},
+    Description: {type: 'string'},
+    Registration_Start: {type: 'string'},
+    Registration_End: {type: 'string'},
+    Verification_End: {type: 'string'},
+    Execution_Start: {type: 'string'},
+    Execution_End: {type: 'string'},
+    Announcement_Date: {type: 'string'},
+    Tags: {type: 'array', items: {type: 'string'}},
+  },
+};
+
+export const ParticipationRequestBody = {
+  description: 'Request Body fungsi Participant Team',
+  required: true,
+  content: {'application/json': {schema: ParticipationSchema}},
+};
+
+//
+// CHAT ROOM
+//
+export type ChatRoomData = {
+  Room_Name: string;
+  Members: number[];
+};
+
+const ChatRoomSchema = {
+  properties: {
+    Room_Name: {type: 'string'},
+    Members: {type: 'array', items: {type: 'number'}},
+  },
+};
+
+export const ChatRoomRequestBody = {
+  description: 'Request Body fungsi Participant Team',
+  required: true,
+  content: {'application/json': {schema: ChatRoomSchema}},
+};
+
+//
 // MISCTYPES
 //
 export type UserLimited = {ID_User: number; Username: string};
