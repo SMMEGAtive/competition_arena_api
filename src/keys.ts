@@ -3,7 +3,7 @@ import {PasswordHasher} from './services/hash.password.bcryptjs';
 import {TokenService, UserService} from '@loopback/authentication';
 import {User} from './models';
 import {UserRepository, Credentials} from './repositories';
-import {JWTService} from './services';
+import {JWTService, FileUploadService} from './services';
 import {FileUploadHandler} from './types';
 
 export namespace TokenServiceConstants {
@@ -36,6 +36,8 @@ export namespace UserServiceBindings {
   );
 }
 
+export namespace FileUploadBindings {}
+
 export namespace JWTAuthenticationStrategyBindings {
   export const TOKEN_SECRET = BindingKey.create<string>(
     'authentication.jwt.secret',
@@ -51,8 +53,8 @@ export namespace JWTAuthenticationStrategyBindings {
 /**
  * Binding key for the file upload service
  */
-export const FILE_UPLOAD_SERVICE = BindingKey.create<FileUploadHandler>(
-  'services.FileUpload',
+export const FILE_UPLOAD_SERVICE = BindingKey.create<FileUploadService>(
+  'services.file-upload',
 );
 
 /**

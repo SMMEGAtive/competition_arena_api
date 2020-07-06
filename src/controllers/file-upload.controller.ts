@@ -12,12 +12,13 @@ import {
 } from '@loopback/rest';
 import {FILE_UPLOAD_SERVICE} from '../keys';
 import {FileUploadHandler} from '../types';
+import {FileUploadService} from '../services';
 import multer from 'multer';
 import path from 'path';
 
 export class FileUploadController {
   constructor(
-    @inject(FILE_UPLOAD_SERVICE) private handler: FileUploadHandler,
+    @inject(FILE_UPLOAD_SERVICE) private service: FileUploadService,
   ) {}
 
   @post('/files', {
@@ -38,7 +39,9 @@ export class FileUploadController {
     request: Request,
     @inject(RestBindings.Http.RESPONSE) response: Response,
   ): Promise<string> {
-    const storage = multer.diskStorage({
+    const status = this.service.fileUpload(request, response);
+    return status;
+    /* const storage = multer.diskStorage({
       destination: './public/uploads',
       filename: function (request, file, cb) {
         cb(
@@ -58,7 +61,7 @@ export class FileUploadController {
     });
     console.log(fileArr[0].originalname);
 
-    return 'Yes';
+    return 'Yes'; */
   }
 
   private static getFilesAndFields(request: Request) {

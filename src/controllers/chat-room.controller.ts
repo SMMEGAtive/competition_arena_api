@@ -22,13 +22,15 @@ import {
   ChatMember,
   ChatMemberRelations,
   ChatMessage,
+  User,
 } from '../models';
 import {
   ChatRoomRepository,
   ChatMemberRepository,
   ChatMessageRepository,
+  UserRepository,
 } from '../repositories';
-import {ChatRoomData, ChatRoomRequestBody} from '../models/types';
+import {ChatRoomData, ChatRoomRequestBody, UserLimited} from '../models/types';
 import {OPERATION_SECURITY_SPEC} from '../utils/security-spec';
 import {authenticate} from '@loopback/authentication';
 import {inject} from '@loopback/core';
@@ -44,6 +46,8 @@ export class ChatRoomController {
     public memberRepository: ChatMemberRepository,
     @repository(ChatMessageRepository)
     public chatMessageRepository: ChatMessageRepository,
+    @repository(UserRepository)
+    public userRepository: UserRepository,
   ) {}
 
   @post('/chat-rooms/new', {
@@ -121,7 +125,7 @@ export class ChatRoomController {
     return {count: teamMember.length};
   }
 
-  @get('/chat-rooms', {
+  @get('/chat-rooms/get', {
     responses: {
       '200': {
         description: 'Array of ChatRoom model instances',
@@ -140,7 +144,7 @@ export class ChatRoomController {
     return this.chatRoomRepository.find(filter);
   }
 
-  @post('/chat-rooms/update/{id}', {
+  @patch('/chat-rooms/update/{id}', {
     responses: {
       '200': {
         description: 'Host model instance',
@@ -253,16 +257,67 @@ export class ChatRoomController {
     return {status: 'success'};
   }
 
-  @get('/chat-rooms/{id}', {
+  @get('/chat-rooms/get/messages/{id}', {
     responses: {
       '200': {
-        description: 'ChatRoom model instance',
-        content: {'application/json': {schema: getModelSchemaRef(ChatRoom)}},
+        description: 'ChatMessage model instance',
+        content: {'application/json': {schema: getModelSchemaRef(ChatMessage)}},
       },
     },
   })
-  async findById(@param.path.number('id') id: number): Promise<ChatRoom> {
-    return this.chatRoomRepository.findById(id);
+  async findRoomMessages(
+    @param.path.number('id') id: number,
+  ): Promise<ChatMessage[]> {
+    return this.chatMessageRepository.find({where: {ID_Room: id}});
+  }
+
+  @get('/chat-rooms/get/{id}', {
+    responses: {
+      '200': {
+        description: 'ChatRoom model instance',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'string',
+              properties: {
+                Room_Name: {type: 'string'},
+                Members: {
+                  type: 'array',
+                  properties: {
+                    ID_User: {type: 'number'},
+                    Username: {type: 'string'},
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async findById(
+    @param.path.number('id') id: number,
+  ): Promise<{
+    ID_Room: number | undefined;
+    Room_Name: string;
+    Members: UserLimited[];
+  }> {
+    const room: ChatRoom = await this.chatRoomRepository.findById(id);
+    const members: ChatMember[] = await this.memberRepository.find({
+      where: {ID_Room: id},
+    });
+
+    const memberInfo: UserLimited[] = [];
+    for (let i: number = 0; i < members.length; i++) {
+      let user: User = await this.userRepository.findById(members[i].ID_User);
+      memberInfo.push({ID_User: user.ID_User, Username: user.Username});
+    }
+
+    return {
+      ID_Room: room.ID_Room,
+      Room_Name: room.Room_Name,
+      Members: memberInfo,
+    };
   }
 
   @del('/chat-rooms/delete/{id}', {

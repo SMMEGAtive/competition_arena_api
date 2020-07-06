@@ -205,28 +205,12 @@ export const CompetitionRequestBody = {
 export type ParticipationData = {
   ID_Participant: number;
   ID_Competition: number;
-  Description: string;
-  Registration_Start: string;
-  Registration_End: string;
-  Verification_End: string;
-  Execution_Start: string;
-  Execution_End: string;
-  Announcement_Date: string;
-  Tags: string[];
 };
 
 const ParticipationSchema = {
   properties: {
-    ID_Host: {type: 'number'},
-    Title: {type: 'string'},
-    Description: {type: 'string'},
-    Registration_Start: {type: 'string'},
-    Registration_End: {type: 'string'},
-    Verification_End: {type: 'string'},
-    Execution_Start: {type: 'string'},
-    Execution_End: {type: 'string'},
-    Announcement_Date: {type: 'string'},
-    Tags: {type: 'array', items: {type: 'string'}},
+    ID_Participant: {type: 'number'},
+    ID_Competition: {type: 'number'},
   },
 };
 
@@ -255,6 +239,75 @@ export const ChatRoomRequestBody = {
   description: 'Request Body fungsi Participant Team',
   required: true,
   content: {'application/json': {schema: ChatRoomSchema}},
+};
+
+//
+// SUBMISSION
+//
+export type SubmissionData = {
+  ID_Competition: number;
+  Link: string;
+  Title: string;
+  Description: string;
+};
+
+const SubmissionSchema = {
+  properties: {
+    ID_Competition: {type: 'number'},
+    Link: {type: 'string'},
+    Title: {type: 'string'},
+    Description: {type: 'string'},
+  },
+};
+
+export const SubmissionRequestBody = {
+  description: 'Request Body fungsi Participant Team',
+  required: true,
+  content: {'application/json': {schema: SubmissionSchema}},
+};
+
+//
+// SUBMISSION
+//
+export type CommentData = {
+  ID_Submission: number;
+  Content: string;
+};
+
+const CommentSchema = {
+  properties: {
+    ID_Submission: {type: 'number'},
+    Content: {type: 'string'},
+  },
+};
+
+export const CommentRequestBody = {
+  description: 'Request Body fungsi Participant Team',
+  required: true,
+  content: {'application/json': {schema: CommentSchema}},
+};
+
+//
+// SUBMISSION
+//
+export type ScoreData = {
+  ID_Submission: number;
+  Score: number;
+  Impression: string;
+};
+
+const ScoreSchema = {
+  properties: {
+    ID_Submission: {type: 'number'},
+    Score: {type: 'number'},
+    Impression: {type: 'string'},
+  },
+};
+
+export const ScoreRequestBody = {
+  description: 'Request Body fungsi Participant Team',
+  required: true,
+  content: {'application/json': {schema: ScoreSchema}},
 };
 
 //

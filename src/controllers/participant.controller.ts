@@ -104,7 +104,7 @@ export class ParticipantController {
     return {Participants: teams};
   }
 
-  @get('/participantss/getdetail/{id}', {
+  @get('/participants/get/{id}', {
     responses: {
       '200': {
         description: 'Host model instance',

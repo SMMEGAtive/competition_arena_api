@@ -19,14 +19,21 @@ import {
 } from '@loopback/rest';
 import {Score} from '../models';
 import {ScoreRepository} from '../repositories';
+import {getDateNow} from '../utils/gFunctions';
+import {OPERATION_SECURITY_SPEC} from '../utils/security-spec';
+import {UserProfile, securityId, SecurityBindings} from '@loopback/security';
+import {authenticate} from '@loopback/authentication';
+import {inject} from '@loopback/core';
+import {ScoreRequestBody, ScoreData} from '../models/types';
 
 export class ScoreController {
   constructor(
     @repository(ScoreRepository)
-    public scoreRepository : ScoreRepository,
+    public scoreRepository: ScoreRepository,
   ) {}
 
-  @post('/scores', {
+  @post('/scores/new', {
+    security: OPERATION_SECURITY_SPEC,
     responses: {
       '200': {
         description: 'Score model instance',
@@ -34,20 +41,20 @@ export class ScoreController {
       },
     },
   })
+  @authenticate('jwt')
   async create(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Score, {
-            title: 'NewScore',
-            exclude: ['ID_Score'],
-          }),
-        },
-      },
-    })
-    score: Omit<Score, 'ID_Score'>,
+    @requestBody(ScoreRequestBody)
+    score: ScoreData,
+    @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
   ): Promise<Score> {
-    return this.scoreRepository.create(score);
+    const newScore: Omit<Score, 'ID_Score'> = new Score();
+    newScore.ID_Submission = score.ID_Submission;
+    newScore.Score = score.Score;
+    newScore.Impression = score.Impression;
+    newScore.ID_User = parseInt(currentUserProfile[securityId]);
+    newScore.Date_Created = getDateNow();
+    newScore.Date_Modified = getDateNow();
+    return this.scoreRepository.create(newScore);
   }
 
   @get('/scores/count', {
@@ -64,7 +71,7 @@ export class ScoreController {
     return this.scoreRepository.count(where);
   }
 
-  @get('/scores', {
+  @get('/scores/get', {
     responses: {
       '200': {
         description: 'Array of Score model instances',
@@ -77,34 +84,31 @@ export class ScoreController {
     },
   })
   async find(
-    @param.query.object('filter', getFilterSchemaFor(Score)) filter?: Filter<Score>,
+    @param.query.object('filter', getFilterSchemaFor(Score))
+    filter?: Filter<Score>,
   ): Promise<Score[]> {
     return this.scoreRepository.find(filter);
   }
 
-  @patch('/scores', {
+  @get('/scores/get/submission/{id}', {
     responses: {
       '200': {
-        description: 'Score PATCH success count',
-        content: {'application/json': {schema: CountSchema}},
+        description: 'Array of Score model instances',
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Score)},
+          },
+        },
       },
     },
   })
-  async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Score, {partial: true}),
-        },
-      },
-    })
-    score: Score,
-    @param.query.object('where', getWhereSchemaFor(Score)) where?: Where<Score>,
-  ): Promise<Count> {
-    return this.scoreRepository.updateAll(score, where);
+  async findBySubmission(
+    @param.path.number('id') id: number,
+  ): Promise<Score[]> {
+    return this.scoreRepository.find({where: {ID_Submission: id}});
   }
 
-  @get('/scores/{id}', {
+  @get('/scores/get/{id}', {
     responses: {
       '200': {
         description: 'Score model instance',
@@ -116,7 +120,7 @@ export class ScoreController {
     return this.scoreRepository.findById(id);
   }
 
-  @patch('/scores/{id}', {
+  @patch('/scores/update/{id}', {
     responses: {
       '204': {
         description: 'Score PATCH success',
@@ -134,24 +138,11 @@ export class ScoreController {
     })
     score: Score,
   ): Promise<void> {
+    score.Date_Modified = getDateNow();
     await this.scoreRepository.updateById(id, score);
   }
 
-  @put('/scores/{id}', {
-    responses: {
-      '204': {
-        description: 'Score PUT success',
-      },
-    },
-  })
-  async replaceById(
-    @param.path.number('id') id: number,
-    @requestBody() score: Score,
-  ): Promise<void> {
-    await this.scoreRepository.replaceById(id, score);
-  }
-
-  @del('/scores/{id}', {
+  @del('/scores/delete/{id}', {
     responses: {
       '204': {
         description: 'Score DELETE success',

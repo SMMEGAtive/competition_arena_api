@@ -31,7 +31,7 @@ export class RoleChangeRequestController {
     public roleChangeRequestRepository: RoleChangeRequestRepository,
   ) {}
 
-  @post('/role-change-requests', {
+  @post('/role-change-requests/new', {
     security: OPERATION_SECURITY_SPEC,
     responses: {
       '200': {
@@ -71,7 +71,7 @@ export class RoleChangeRequestController {
     return this.roleChangeRequestRepository.count(where);
   }
 
-  @get('/role-change-requests', {
+  @get('/role-change-requests/get', {
     responses: {
       '200': {
         description: 'Array of RoleChangeRequest model instances',
@@ -113,30 +113,29 @@ export class RoleChangeRequestController {
     return {status: 'success'};
   }
 
-  @patch('/role-change-requests', {
+  @patch('/role-change-requests/decline/{id}', {
     responses: {
       '200': {
-        description: 'RoleChangeRequest PATCH success count',
-        content: {'application/json': {schema: CountSchema}},
+        description: 'Host model instance',
+        content: {
+          'application/json': {
+            schema: {type: 'string', properties: {status: {type: 'string'}}},
+          },
+        },
       },
     },
   })
-  async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(RoleChangeRequest, {partial: true}),
-        },
-      },
-    })
-    roleChangeRequest: RoleChangeRequest,
-    @param.query.object('where', getWhereSchemaFor(RoleChangeRequest))
-    where?: Where<RoleChangeRequest>,
-  ): Promise<Count> {
-    return this.roleChangeRequestRepository.updateAll(roleChangeRequest, where);
+  async decline(
+    @param.path.number('id') id: number,
+  ): Promise<{status: string}> {
+    const req: RoleChangeRequest = new RoleChangeRequest();
+    req.Status = -1;
+
+    this.roleChangeRequestRepository.updateById(id, req);
+    return {status: 'success'};
   }
 
-  @get('/role-change-requests/{id}', {
+  @get('/role-change-requests/get/{id}', {
     responses: {
       '200': {
         description: 'RoleChangeRequest model instance',
@@ -152,42 +151,21 @@ export class RoleChangeRequestController {
     return this.roleChangeRequestRepository.findById(id);
   }
 
-  @patch('/role-change-requests/{id}', {
+  @get('/role-change-requests/get/unprocessed', {
     responses: {
-      '204': {
-        description: 'RoleChangeRequest PATCH success',
-      },
-    },
-  })
-  async updateById(
-    @param.path.number('id') id: number,
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(RoleChangeRequest, {partial: true}),
+      '200': {
+        description: 'RoleChangeRequest model instance',
+        content: {
+          'application/json': {schema: getModelSchemaRef(RoleChangeRequest)},
         },
       },
-    })
-    roleChangeRequest: RoleChangeRequest,
-  ): Promise<void> {
-    await this.roleChangeRequestRepository.updateById(id, roleChangeRequest);
-  }
-
-  @put('/role-change-requests/{id}', {
-    responses: {
-      '204': {
-        description: 'RoleChangeRequest PUT success',
-      },
     },
   })
-  async replaceById(
-    @param.path.number('id') id: number,
-    @requestBody() roleChangeRequest: RoleChangeRequest,
-  ): Promise<void> {
-    await this.roleChangeRequestRepository.replaceById(id, roleChangeRequest);
+  async findUnprocessed(): Promise<RoleChangeRequest[]> {
+    return this.roleChangeRequestRepository.find({where: {Status: 0}});
   }
 
-  @del('/role-change-requests/{id}', {
+  @del('/role-change-requests/delete/{id}', {
     responses: {
       '204': {
         description: 'RoleChangeRequest DELETE success',

@@ -73,6 +73,11 @@ export class User extends Entity {
   })
   Date_of_Birth?: string;
 
+  @property({
+    type: 'string',
+  })
+  Avatar_Path?: string;
+
   constructor(data?: Partial<User>) {
     super(data);
   }

@@ -19,14 +19,21 @@ import {
 } from '@loopback/rest';
 import {Comment} from '../models';
 import {CommentRepository} from '../repositories';
+import {CommentData, CommentRequestBody} from '../models/types';
+import {getDateNow} from '../utils/gFunctions';
+import {OPERATION_SECURITY_SPEC} from '../utils/security-spec';
+import {UserProfile, securityId, SecurityBindings} from '@loopback/security';
+import {authenticate} from '@loopback/authentication';
+import {inject} from '@loopback/core';
 
 export class CommentController {
   constructor(
     @repository(CommentRepository)
-    public commentRepository : CommentRepository,
+    public commentRepository: CommentRepository,
   ) {}
 
-  @post('/comments', {
+  @post('/comments/new', {
+    security: OPERATION_SECURITY_SPEC,
     responses: {
       '200': {
         description: 'Comment model instance',
@@ -34,20 +41,44 @@ export class CommentController {
       },
     },
   })
+  @authenticate('jwt')
   async create(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Comment, {
-            title: 'NewComment',
-            exclude: ['ID_Comment'],
-          }),
-        },
-      },
-    })
-    comment: Omit<Comment, 'ID_Comment'>,
+    @requestBody(CommentRequestBody)
+    comment: CommentData,
+    @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
   ): Promise<Comment> {
-    return this.commentRepository.create(comment);
+    const newComment: Omit<Comment, 'ID_Comment'> = new Comment();
+    newComment.ID_Submission = comment.ID_Submission;
+    newComment.Content = comment.Content;
+    newComment.Date_Created = getDateNow();
+    newComment.Date_Modified = getDateNow();
+    newComment.ID_Comment_Parent = 0;
+    newComment.ID_User = parseInt(currentUserProfile[securityId]);
+    return this.commentRepository.create(newComment);
+  }
+
+  @post('/comments/reply/{id}', {
+    responses: {
+      '200': {
+        description: 'Comment model instance',
+        content: {'application/json': {schema: getModelSchemaRef(Comment)}},
+      },
+    },
+  })
+  async reply(
+    @requestBody(CommentRequestBody)
+    comment: CommentData,
+    @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
+    @param.path.number('id') id: number,
+  ): Promise<Comment> {
+    const newComment: Omit<Comment, 'ID_Comment'> = new Comment();
+    newComment.ID_Submission = comment.ID_Submission;
+    newComment.Content = comment.Content;
+    newComment.Date_Created = getDateNow();
+    newComment.Date_Modified = getDateNow();
+    newComment.ID_Comment_Parent = id;
+    newComment.ID_User = parseInt(currentUserProfile[securityId]);
+    return this.commentRepository.create(newComment);
   }
 
   @get('/comments/count', {
@@ -59,12 +90,13 @@ export class CommentController {
     },
   })
   async count(
-    @param.query.object('where', getWhereSchemaFor(Comment)) where?: Where<Comment>,
+    @param.query.object('where', getWhereSchemaFor(Comment))
+    where?: Where<Comment>,
   ): Promise<Count> {
     return this.commentRepository.count(where);
   }
 
-  @get('/comments', {
+  @get('/comments/get', {
     responses: {
       '200': {
         description: 'Array of Comment model instances',
@@ -77,34 +109,31 @@ export class CommentController {
     },
   })
   async find(
-    @param.query.object('filter', getFilterSchemaFor(Comment)) filter?: Filter<Comment>,
+    @param.query.object('filter', getFilterSchemaFor(Comment))
+    filter?: Filter<Comment>,
   ): Promise<Comment[]> {
     return this.commentRepository.find(filter);
   }
 
-  @patch('/comments', {
+  @get('/comments/get/submission/{id}', {
     responses: {
       '200': {
-        description: 'Comment PATCH success count',
-        content: {'application/json': {schema: CountSchema}},
+        description: 'Array of Comment model instances',
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Comment)},
+          },
+        },
       },
     },
   })
-  async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(Comment, {partial: true}),
-        },
-      },
-    })
-    comment: Comment,
-    @param.query.object('where', getWhereSchemaFor(Comment)) where?: Where<Comment>,
-  ): Promise<Count> {
-    return this.commentRepository.updateAll(comment, where);
+  async findForSubmission(
+    @param.path.number('id') id: number,
+  ): Promise<Comment[]> {
+    return this.commentRepository.find({where: {ID_Submission: id}});
   }
 
-  @get('/comments/{id}', {
+  @get('/comments/get/{id}', {
     responses: {
       '200': {
         description: 'Comment model instance',
@@ -116,7 +145,7 @@ export class CommentController {
     return this.commentRepository.findById(id);
   }
 
-  @patch('/comments/{id}', {
+  @patch('/comments/update/{id}', {
     responses: {
       '204': {
         description: 'Comment PATCH success',
@@ -134,24 +163,11 @@ export class CommentController {
     })
     comment: Comment,
   ): Promise<void> {
+    comment.Date_Modified = getDateNow();
     await this.commentRepository.updateById(id, comment);
   }
 
-  @put('/comments/{id}', {
-    responses: {
-      '204': {
-        description: 'Comment PUT success',
-      },
-    },
-  })
-  async replaceById(
-    @param.path.number('id') id: number,
-    @requestBody() comment: Comment,
-  ): Promise<void> {
-    await this.commentRepository.replaceById(id, comment);
-  }
-
-  @del('/comments/{id}', {
+  @del('/comments/delete/{id}', {
     responses: {
       '204': {
         description: 'Comment DELETE success',

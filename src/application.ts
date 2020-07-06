@@ -18,11 +18,12 @@ import {
   TokenServiceBindings,
   TokenServiceConstants,
   UserServiceBindings,
+  FILE_UPLOAD_SERVICE,
 } from './keys';
 import {JWTService} from './services/jwt-service';
 import {JWTAuthenticationStrategy} from './authentication-strategies/jwt-strategy';
 import {BcryptHasher} from './services/hash.password.bcryptjs';
-import {CustomUserService} from './services';
+import {CustomUserService, FileUploadService} from './services';
 import {User} from './models';
 import {UserRepository} from './repositories';
 import {SECURITY_SCHEME_SPEC} from './utils/security-spec';
@@ -95,6 +96,8 @@ export class CarenaApiApplication extends BootMixin(
     );
 
     this.bind(TokenServiceBindings.TOKEN_SERVICE).toClass(JWTService);
+
+    this.bind(FILE_UPLOAD_SERVICE).toClass(FileUploadService);
 
     // Bind bcrypt hash services - utilized by 'UserController' and 'MyUserService'
     this.bind(PasswordHasherBindings.ROUNDS).to(10);

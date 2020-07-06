@@ -24,11 +24,17 @@ import {
   TagsRelations,
   CompetitionRelations,
   TaglistRelations,
+  Participation,
+  Submission,
+  Score,
 } from '../models';
 import {
   CompetitionRepository,
   TagsRepository,
   TaglistRepository,
+  ScoreRepository,
+  ParticipationRepository,
+  SubmissionRepository,
 } from '../repositories';
 import {CompetitionRequestBody, CompetitionData} from '../models/types';
 import {OPERATION_SECURITY_SPEC} from '../utils/security-spec';
@@ -45,6 +51,12 @@ export class CompetitionController {
     public taglistRepository: TaglistRepository,
     @repository(TagsRepository)
     public tagsRepo: TagsRepository,
+    @repository(ScoreRepository)
+    public scoreRepo: ScoreRepository,
+    @repository(ParticipationRepository)
+    public partRepo: ParticipationRepository,
+    @repository(SubmissionRepository)
+    public submissionRepo: SubmissionRepository,
   ) {}
 
   async getTagID(tag: string): Promise<number> {
@@ -65,6 +77,7 @@ export class CompetitionController {
   }
 
   @post('/competitions/new', {
+    security: OPERATION_SECURITY_SPEC,
     responses: {
       '200': {
         description: 'Competition model instance',
@@ -72,9 +85,11 @@ export class CompetitionController {
       },
     },
   })
+  @authenticate('jwt')
   async create(
     @requestBody(CompetitionRequestBody)
     competition: CompetitionData,
+    @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
   ): Promise<CompetitionData> {
     // Assign into Competition Type
     const comp: Competition = new Competition();
@@ -179,7 +194,66 @@ export class CompetitionController {
     return this.competitionRepository.findById(id);
   }
 
-  @post('/competitions/update/{id}', {
+  @get('/competitions/get/keyword/', {
+    responses: {
+      '200': {
+        description: 'Competition model instance',
+        content: {'application/json': {schema: getModelSchemaRef(Competition)}},
+      },
+    },
+  })
+  async findByKeyword(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {
+            properties: {
+              keyword: {type: 'string'},
+              tags: {type: 'array', items: {type: 'string'}},
+            },
+          },
+        },
+      },
+    })
+    request: {
+      keyword: string;
+      tags?: string[];
+    },
+  ): Promise<Competition[]> {
+    let comps: Competition[] = [];
+    let taglist: Taglist[] = [];
+    if (request.tags) {
+      for (let i: number = 0; i < request.tags.length; i++) {
+        const selectedTags: Tags[] = await this.tagsRepo.find({
+          where: {Tag_Name: request.tags[i]},
+        });
+        taglist = await this.taglistRepository.find({
+          where: {ID_Tags: selectedTags[i].ID_Tags},
+        });
+        for (let j: number = 0; j < taglist.length; j++) {
+          let curComps: Competition[] = await this.competitionRepository.find({
+            where: {
+              ID_Competition: taglist[j].ID_Competition,
+              Title: {like: `%${request.keyword}%`},
+            },
+          });
+          if (curComps) {
+            comps.push(curComps[0]);
+          }
+        }
+      }
+    } else {
+      comps = await this.competitionRepository.find({
+        where: {
+          Title: {like: `%${request.keyword}%`},
+        },
+      });
+    }
+
+    return comps;
+  }
+
+  @patch('/competitions/update/{id}', {
     security: OPERATION_SECURITY_SPEC,
     responses: {
       '200': {
@@ -286,6 +360,101 @@ export class CompetitionController {
       }
     }
 
+    return {status: 'Success'};
+  }
+
+  @patch('/competitions/setwinner/{id}', {
+    security: OPERATION_SECURITY_SPEC,
+    responses: {
+      '200': {
+        description: 'Host model instance',
+        content: {
+          'application/json': {
+            schema: {type: 'string', properties: {status: {type: 'string'}}},
+          },
+        },
+      },
+    },
+  })
+  @authenticate('jwt')
+  async setWinner(
+    @requestBody(CompetitionRequestBody)
+    competition: CompetitionData,
+    @param.path.number('id') id: number,
+    @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
+  ): Promise<{status: string}> {
+    const listParticipations: Participation[] = await this.partRepo.find({
+      where: {ID_Competition: id},
+    });
+
+    const listScore: Score[] = [];
+    for (let i: number = 0; i < listParticipations.length; i++) {
+      let submission: Submission | null = await this.submissionRepo.findOne({
+        where: {ID_Participation: listParticipations[i].ID_Participation},
+      });
+
+      if (submission) {
+        let score: Score[] = await this.scoreRepo.find({
+          where: {ID_Submission: submission.ID_Submission},
+        });
+        listScore.push(score[0]);
+      }
+    }
+
+    class AccumulatedScore {
+      ID_Submission: number;
+      Total_Score: number;
+      constructor() {}
+    }
+
+    const accumulatedScore: AccumulatedScore[] = [];
+    for (let i: number = 0; i < listScore.length; i++) {
+      if (accumulatedScore.length == 0) {
+        let score: AccumulatedScore = new AccumulatedScore();
+        score.ID_Submission = listScore[0].ID_Submission;
+        score.Total_Score = listScore[0].Score;
+        accumulatedScore.push(score);
+      } else {
+        let simileExist: boolean = false;
+        for (let j: number = 0; j < accumulatedScore.length; j++) {
+          if (accumulatedScore[j].ID_Submission == listScore[i].ID_Submission) {
+            simileExist = true;
+            accumulatedScore[j].Total_Score += listScore[i].Score;
+          }
+        }
+
+        if (!simileExist) {
+          let score: AccumulatedScore = new AccumulatedScore();
+          score.ID_Submission = listScore[i].ID_Submission;
+          score.Total_Score = listScore[i].Score;
+          accumulatedScore.push(score);
+        }
+      }
+    }
+
+    const threeHighest: AccumulatedScore[] = [];
+    for (let i: number = 0; i < accumulatedScore.length; i++) {
+      if (threeHighest.length != 3) {
+        threeHighest.push(accumulatedScore[i]);
+      } else {
+        let indexUsed: number = -1;
+        let deviation: number = 0;
+        for (let j: number = 0; j < threeHighest.length; j++) {
+          if (accumulatedScore[i].Total_Score > threeHighest[j].Total_Score) {
+            let currentDeviation: number =
+              accumulatedScore[i].Total_Score - threeHighest[j].Total_Score;
+            if (deviation < currentDeviation) {
+              indexUsed = j;
+              deviation = currentDeviation;
+            }
+          }
+        }
+
+        if (indexUsed != -1) {
+          threeHighest[indexUsed] = accumulatedScore[i];
+        }
+      }
+    }
     return {status: 'Success'};
   }
 

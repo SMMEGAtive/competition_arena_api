@@ -96,7 +96,7 @@ export class HostController {
     return {Hosts: teams};
   }
 
-  @get('/hosts/getdetail/{id}', {
+  @get('/hosts/get/{id}', {
     responses: {
       '200': {
         description: 'Host model instance',
@@ -198,7 +198,7 @@ export class HostController {
     return this.hostRepository.create(hostTeam);
   }
 
-  @post('/hosts/update/{id}', {
+  @patch('/hosts/update/{id}', {
     security: OPERATION_SECURITY_SPEC,
     responses: {
       '200': {

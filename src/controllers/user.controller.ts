@@ -15,9 +15,12 @@ import {
   patch,
   put,
   del,
+  Request,
   requestBody,
   HttpErrors,
   isReferenceObject,
+  RestBindings,
+  Response,
 } from '@loopback/rest';
 import {User, UserRelations} from '../models';
 import {
@@ -35,6 +38,7 @@ import {
   PasswordHasherBindings,
   TokenServiceBindings,
   UserServiceBindings,
+  FILE_UPLOAD_SERVICE,
 } from '../keys';
 import {PasswordHasher} from '../services/hash.password.bcryptjs';
 import {CustomUserService} from '../services/user.service';
@@ -43,6 +47,7 @@ import {OPERATION_SECURITY_SPEC} from '../utils/security-spec';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import {Console} from 'console';
+import {FileUploadService} from '../services';
 
 const nodemailer = require('nodemailer');
 require('dotenv').config();
@@ -57,38 +62,11 @@ export class UserController {
     public jwtService: TokenService,
     @inject(UserServiceBindings.USER_SERVICE)
     public userService: CustomUserService,
+    @inject(FILE_UPLOAD_SERVICE)
+    public uploadService: FileUploadService,
   ) {}
 
-  @post('/users', {
-    responses: {
-      '200': {
-        description: 'User model instance',
-        content: {'application/json': {schema: getModelSchemaRef(User)}},
-      },
-    },
-  })
-  async create(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(User, {
-            title: 'NewUser',
-            exclude: ['ID_User'],
-          }),
-        },
-      },
-    })
-    user: Omit<User, 'ID_User'>,
-  ): Promise<User> {
-    const salt = await genSalt();
-    const hashPassword = (await hash(user.Password, salt)).toString();
-
-    user.Password = hashPassword;
-
-    return this.userRepository.create(user);
-  }
-
-  @post('/register', {
+  @post('/users/register', {
     responses: {
       '200': {
         description: 'User model instance',
@@ -135,7 +113,7 @@ export class UserController {
     return currentUserProfile;
   }
 
-  @post('/users/requestforgotpassword', {
+  @post('/users/forgotpass/request', {
     security: OPERATION_SECURITY_SPEC,
     responses: {
       '200': {
@@ -294,7 +272,8 @@ export class UserController {
 
     return this.userRepository.updateById(id, thisUser);
   }
-  @post('/users/changeforgotpass', {
+
+  @post('/users/forgotpass/change', {
     security: OPERATION_SECURITY_SPEC,
     responses: {
       '200': {
@@ -405,7 +384,7 @@ export class UserController {
     return this.userRepository.count(where);
   }
 
-  @get('/users', {
+  @get('/users/get', {
     responses: {
       '200': {
         description: 'Array of User model instances',
@@ -424,7 +403,7 @@ export class UserController {
     return this.userRepository.find(filter);
   }
 
-  @patch('/users', {
+  @patch('/users/update/{id}', {
     responses: {
       '200': {
         description: 'User PATCH success count',
@@ -446,7 +425,7 @@ export class UserController {
     return this.userRepository.updateAll(user, where);
   }
 
-  @get('/users/{id}', {
+  @get('/users/get/{id}', {
     responses: {
       '200': {
         description: 'User model instance',
@@ -458,7 +437,7 @@ export class UserController {
     return this.userRepository.findById(id);
   }
 
-  @patch('/users/{id}', {
+  @patch('/users/update/{id}', {
     responses: {
       '204': {
         description: 'User PATCH success',
@@ -479,21 +458,32 @@ export class UserController {
     await this.userRepository.updateById(id, user);
   }
 
-  @put('/users/{id}', {
+  @patch('/users/changeavatar/{id}', {
     responses: {
       '204': {
-        description: 'User PUT success',
+        description: 'User PATCH success',
       },
     },
   })
-  async replaceById(
+  async changeAvatar(
     @param.path.number('id') id: number,
-    @requestBody() user: User,
+    @requestBody({
+      description: 'Upload file test',
+      required: true,
+      content: {
+        'multipart/form-data': {'x-parser': 'stream', schema: {type: 'object'}},
+      },
+    })
+    user: Request,
+    @inject(RestBindings.Http.RESPONSE) response: Response,
   ): Promise<void> {
-    await this.userRepository.replaceById(id, user);
+    const uploadPath = await this.uploadService.fileUpload(user, response);
+    const update: User = new User();
+    update.Avatar_Path = uploadPath.toString();
+    await this.userRepository.updateById(id, update);
   }
 
-  @del('/users/{id}', {
+  @del('/users/delete/{id}', {
     responses: {
       '204': {
         description: 'User DELETE success',

@@ -1,35 +1,44 @@
-// Copyright IBM Corp. 2020. All Rights Reserved.
-// Node module: @loopback/example-file-transfer
-// This file is licensed under the MIT License.
-// License text available at https://opensource.org/licenses/MIT
-
+import {inject} from '@loopback/core';
 import {
-  bind,
-  BindingScope,
-  config,
-  ContextTags,
-  Provider,
-} from '@loopback/core';
-import multer from 'multer';
+  post,
+  Request,
+  requestBody,
+  Response,
+  RestBindings,
+} from '@loopback/rest';
 import {FILE_UPLOAD_SERVICE} from '../keys';
 import {FileUploadHandler} from '../types';
+import multer from 'multer';
+import path from 'path';
 
-/**
- * A provider to return an `Express` request handler from `multer` middleware
- */
-@bind({
-  scope: BindingScope.TRANSIENT,
-  tags: {[ContextTags.KEY]: FILE_UPLOAD_SERVICE},
-})
-export class FileUploadProvider implements Provider<FileUploadHandler> {
-  constructor(@config() private options: multer.Options = {}) {
-    if (!this.options.storage) {
-      // Default to in-memory storage
-      this.options.storage = multer.memoryStorage();
-    }
-  }
+export class FileUploadService {
+  constructor() {}
 
-  value(): FileUploadHandler {
-    return multer(this.options).any();
+  async fileUpload(
+    request: Request,
+    @inject(RestBindings.Http.RESPONSE) response: Response,
+  ): Promise<string> {
+    const storage = multer.diskStorage({
+      destination: './public/uploads',
+      filename: function (request, file, cb) {
+        cb(
+          null,
+          file.fieldname + '-' + Date.now() + path.extname(file.originalname),
+        );
+      },
+    });
+    const upload = multer({storage});
+    const fileArr = await new Promise<any[]>((resolve, reject) => {
+      upload.any()(<any>request, <any>response, (err: unknown) => {
+        if (err) reject(err);
+        else {
+          resolve(<any[]>request.files);
+        }
+      });
+    });
+    const filePath: string = fileArr[0].destination + '/' + fileArr[0].filename;
+    console.log(filePath);
+
+    return filePath;
   }
 }
