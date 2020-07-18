@@ -125,7 +125,7 @@ export class ChatRoomController {
     return {count: teamMember.length};
   }
 
-  @get('/chat-rooms/get', {
+  /* @get('/chat-rooms/get', {
     responses: {
       '200': {
         description: 'Array of ChatRoom model instances',
@@ -142,7 +142,7 @@ export class ChatRoomController {
     filter?: Filter<ChatRoom>,
   ): Promise<ChatRoom[]> {
     return this.chatRoomRepository.find(filter);
-  }
+  } */
 
   @patch('/chat-rooms/update/{id}', {
     responses: {
@@ -241,6 +241,53 @@ export class ChatRoomController {
     @requestBody({
       content: {
         'application/json': {
+          schema: {
+            properties: {
+              ID_User: {type: 'number'},
+              Message: {type: 'string'},
+            },
+          },
+        },
+      },
+    })
+    chat: {ID_Room: number; ID_User: number; Message: string},
+    @param.path.number('id') id: number,
+  ): Promise<{status: string}> {
+    let status: string = '';
+    let chatMessage: Omit<ChatMessage, 'ID_Message'> = new ChatMessage();
+    chatMessage.ID_User = chat.ID_User;
+    chatMessage.ID_Room = id;
+    chatMessage.Message = chat.Message;
+    chatMessage.Sent_Time = getDateNow();
+    chatMessage.Delivered_Time = getDateNow();
+    chatMessage.Read_Time = getDateNow();
+    const message: ChatMessage = await this.chatMessageRepository.create(
+      chatMessage,
+    );
+    if (message != null) {
+      status = 'Success';
+    } else {
+      status = 'Failed';
+    }
+    return {status};
+  }
+
+  @post('/chat-rooms/send/{id}/withimage', {
+    responses: {
+      '200': {
+        description: 'Host model instance',
+        content: {
+          'application/json': {
+            schema: {type: 'string', properties: {status: {type: 'string'}}},
+          },
+        },
+      },
+    },
+  })
+  async sendMessageWithImage(
+    @requestBody({
+      content: {
+        'application/json': {
           schema: getModelSchemaRef(ChatMessage, {
             title: 'NewChatMessage',
             exclude: ['ID_Message'],
@@ -267,8 +314,119 @@ export class ChatRoomController {
   })
   async findRoomMessages(
     @param.path.number('id') id: number,
-  ): Promise<ChatMessage[]> {
-    return this.chatMessageRepository.find({where: {ID_Room: id}});
+  ): Promise<
+    {
+      ID_Message: number;
+      ID_Room: number;
+      ID_User: number;
+      Username: string;
+      Message: string;
+      Image_URL: string;
+      Sent_Time: string;
+      Delivered_Time: string;
+      Read_Time: string;
+    }[]
+  > {
+    const chatMessages: ChatMessage[] = await this.chatMessageRepository.find({
+      where: {ID_Room: id},
+    });
+    let messages: {
+      ID_Message: number;
+      ID_Room: number;
+      ID_User: number;
+      Username: string;
+      Message: string;
+      Image_URL: string;
+      Sent_Time: string;
+      Delivered_Time: string;
+      Read_Time: string;
+    }[] = [];
+
+    for (let i: number = 0; i < chatMessages.length; i++) {
+      let user: User = await this.userRepository.findById(
+        chatMessages[i].ID_User,
+      );
+      let imageLink: string = '';
+      if (
+        chatMessages[i].Image_URL != null ||
+        chatMessages[i].Image_URL != ''
+      ) {
+        imageLink = chatMessages[i].Image_URL;
+      }
+      messages.push({
+        ID_Message: chatMessages[i].ID_Message,
+        ID_Room: chatMessages[i].ID_Room,
+        ID_User: chatMessages[i].ID_User,
+        Username: user.Username,
+        Message: chatMessages[i].Message,
+        Image_URL: imageLink,
+        Sent_Time: chatMessages[i].Sent_Time,
+        Delivered_Time: chatMessages[i].Delivered_Time,
+        Read_Time: chatMessages[i].Read_Time,
+      });
+    }
+
+    return messages;
+  }
+
+  @get('/chat-rooms/get/', {
+    responses: {
+      '200': {
+        description: 'ChatRoom model instance',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'array',
+              item: {
+                type: 'string',
+                properties: {
+                  Room_Name: {type: 'string'},
+                  Members: {
+                    type: 'array',
+                    properties: {
+                      ID_User: {type: 'number'},
+                      Username: {type: 'string'},
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async findAll(): Promise<
+    {
+      ID_Room: number | undefined;
+      Room_Name: string;
+      Members: UserLimited[];
+    }[]
+  > {
+    const room: ChatRoom[] = await this.chatRoomRepository.find();
+    const members: ChatMember[] = await this.memberRepository.find();
+
+    const rooms: {
+      ID_Room: number | undefined;
+      Room_Name: string;
+      Members: UserLimited[];
+    }[] = [];
+
+    for (let i: number = 0; i < room.length; i++) {
+      const memberInfo: UserLimited[] = [];
+      for (let j: number = 0; j < members.length; j++) {
+        let user: User = await this.userRepository.findById(members[j].ID_User);
+        memberInfo.push({ID_User: user.ID_User, Username: user.Username});
+      }
+
+      rooms.push({
+        ID_Room: room[i].ID_Room,
+        Room_Name: room[i].Room_Name,
+        Members: memberInfo,
+      });
+    }
+
+    return rooms;
   }
 
   @get('/chat-rooms/get/{id}', {

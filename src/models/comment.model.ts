@@ -7,7 +7,7 @@ export class Comment extends Entity {
     id: true,
     generated: true,
   })
-  ID_Comment?: number;
+  ID_Comment: number;
 
   @property({
     type: 'number',
@@ -24,7 +24,7 @@ export class Comment extends Entity {
   @property({
     type: 'number',
   })
-  ID_Comment_Parent?: number;
+  ID_Comment_Parent: number;
 
   @property({
     type: 'string',
@@ -41,7 +41,7 @@ export class Comment extends Entity {
   @property({
     type: 'date',
   })
-  Date_Modified?: string;
+  Date_Modified: string;
 
   constructor(data?: Partial<Comment>) {
     super(data);

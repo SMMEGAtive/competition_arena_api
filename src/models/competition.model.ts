@@ -7,7 +7,7 @@ export class Competition extends Entity {
     id: true,
     generated: true,
   })
-  ID_Competition?: number;
+  ID_Competition: number;
 
   @property({
     type: 'number',
@@ -18,7 +18,7 @@ export class Competition extends Entity {
   @property({
     type: 'number',
   })
-  ID_Winner?: number;
+  ID_Winner: number;
 
   @property({
     type: 'string',
@@ -29,7 +29,7 @@ export class Competition extends Entity {
   @property({
     type: 'string',
   })
-  Description?: string;
+  Description: string;
 
   @property({
     type: 'date',

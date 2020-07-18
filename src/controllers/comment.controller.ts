@@ -17,8 +17,8 @@ import {
   del,
   requestBody,
 } from '@loopback/rest';
-import {Comment} from '../models';
-import {CommentRepository} from '../repositories';
+import {Comment, User} from '../models';
+import {CommentRepository, UserRepository} from '../repositories';
 import {CommentData, CommentRequestBody} from '../models/types';
 import {getDateNow} from '../utils/gFunctions';
 import {OPERATION_SECURITY_SPEC} from '../utils/security-spec';
@@ -30,6 +30,8 @@ export class CommentController {
   constructor(
     @repository(CommentRepository)
     public commentRepository: CommentRepository,
+    @repository(UserRepository)
+    public userRepository: UserRepository,
   ) {}
 
   @post('/comments/new', {
@@ -129,8 +131,58 @@ export class CommentController {
   })
   async findForSubmission(
     @param.path.number('id') id: number,
-  ): Promise<Comment[]> {
-    return this.commentRepository.find({where: {ID_Submission: id}});
+  ): Promise<
+    {
+      ID_Comment: number;
+      ID_Submission: number;
+      ID_User: number;
+      Username: string;
+      ID_Comment_Parent: number;
+      Content: string;
+      Date_Created: string;
+      Date_Modified: string;
+      Avatar_Path: string;
+    }[]
+  > {
+    const comments: Comment[] = await this.commentRepository.find({
+      where: {ID_Submission: id},
+    });
+    let commentData: {
+      ID_Comment: number;
+      ID_Submission: number;
+      ID_User: number;
+      Username: string;
+      ID_Comment_Parent: number;
+      Content: string;
+      Date_Created: string;
+      Date_Modified: string;
+      Avatar_Path: string;
+    }[] = [];
+
+    for (let i: number = 0; i < comments.length; i++) {
+      let user: User = await this.userRepository.findById(comments[i].ID_User);
+      let avatar: string = '';
+      if (user.Avatar_Path) {
+        avatar = user.Avatar_Path?.substring(9);
+      } else {
+        avatar = '';
+      }
+      let comment = {
+        ID_Comment: comments[i].ID_Comment,
+        ID_Submission: comments[i].ID_Submission,
+        ID_User: comments[i].ID_User,
+        Username: user.Username,
+        ID_Comment_Parent: comments[i].ID_Comment_Parent,
+        Content: comments[i].Content,
+        Date_Created: comments[i].Date_Created,
+        Date_Modified: comments[i].Date_Modified,
+        Avatar_Path: avatar,
+      };
+
+      commentData.push(comment);
+    }
+
+    return commentData;
   }
 
   @get('/comments/get/{id}', {

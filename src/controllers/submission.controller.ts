@@ -23,11 +23,15 @@ import {
   Participation,
   ParticipantMember,
   ParticipantMemberRelations,
+  Score,
+  Participant,
 } from '../models';
 import {
   SubmissionRepository,
   ParticipantMemberRepository,
   ParticipationRepository,
+  ScoreRepository,
+  ParticipantRepository,
 } from '../repositories';
 import {SubmissionRequestBody, SubmissionData} from '../models/types';
 import {getDateNow} from '../utils/gFunctions';
@@ -42,8 +46,12 @@ export class SubmissionController {
     public submissionRepository: SubmissionRepository,
     @repository(ParticipantMemberRepository)
     public memberRepository: ParticipantMemberRepository,
+    @repository(ParticipantRepository)
+    public participantRepository: ParticipantRepository,
     @repository(ParticipationRepository)
     public partRepository: ParticipationRepository,
+    @repository(ScoreRepository)
+    public scoreRepository: ScoreRepository,
   ) {}
 
   async checkCompetitionParticipation(
@@ -69,6 +77,7 @@ export class SubmissionController {
         if (idUser == participant[j].ID_User) {
           id = participant[j].ID_Participant;
           j = participant.length;
+          i = participations.length;
         } else {
           id = -1;
         }
@@ -155,8 +164,63 @@ export class SubmissionController {
       },
     },
   })
-  async findById(@param.path.number('id') id: number): Promise<Submission> {
-    return this.submissionRepository.findById(id);
+  async findById(
+    @param.path.number('id') id: number,
+  ): Promise<{
+    ID_Submission: number;
+    Participant: {ID_Participant: number; Participant_Name: string};
+    Title: string;
+    Description: string;
+    Link: string;
+    Status: number;
+    Score: number;
+    Date_Created: string;
+    Date_Modified: string;
+  }> {
+    let data: {
+      ID_Submission: number;
+      Participant: {ID_Participant: number; Participant_Name: string};
+      Title: string;
+      Description: string;
+      Link: string;
+      Status: number;
+      Score: number;
+      Date_Created: string;
+      Date_Modified: string;
+    };
+    let score: number = 0;
+
+    const submission: Submission = await this.submissionRepository.findById(id);
+    const scoreList: Score[] = await this.scoreRepository.find({
+      where: {ID_Submission: id},
+    });
+    const participation: Participation = await this.partRepository.findById(
+      submission.ID_Participation,
+    );
+    const participant: Participant = await this.participantRepository.findById(
+      participation.ID_Participant,
+    );
+
+    for (let i: number = 0; i < scoreList.length; i++) {
+      score += scoreList[i].Score;
+    }
+
+    data = {
+      ID_Submission: submission.ID_Submission,
+      Participant: {
+        ID_Participant: participant.ID_Participant,
+        Participant_Name: participant.Team_Name,
+      },
+      Title: submission.Title,
+      Description: submission.Description,
+      Link: submission.Link,
+      Status: submission.Status,
+      Score: score,
+      Date_Created: submission.Date_Created,
+      Date_Modified: submission.Date_Modified,
+    };
+
+    return data;
   }
 
   @patch('/submissions/update/{id}', {

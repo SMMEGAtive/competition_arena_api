@@ -1,5 +1,6 @@
 import {Request, RestBindings, get, ResponseObject} from '@loopback/rest';
 import {inject} from '@loopback/context';
+var os = require('os');
 
 /**
  * OpenAPI response for ping()
@@ -47,5 +48,24 @@ export class PingController {
       url: this.req.url,
       headers: Object.assign({}, this.req.headers),
     };
+  }
+
+  @get('/pong', {
+    responses: {
+      '200': {
+        description: 'Host model instance',
+        content: {
+          'application/json': {
+            schema: {type: 'string', properties: {status: {type: 'string'}}},
+          },
+        },
+      },
+    },
+  })
+  pong(): {status: String} {
+    // Reply with a greeting, the current time, the url, and request headers
+    var networkInterface = os.networkInterface();
+    console.log(networkInterface);
+    return {status: process.env.PORT!};
   }
 }

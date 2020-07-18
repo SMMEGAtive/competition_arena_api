@@ -24,7 +24,7 @@ export class Participation extends Entity {
   @property({
     type: 'number',
   })
-  ID_Payment_Status?: number;
+  ID_Payment_Status: number;
 
   constructor(data?: Partial<Participation>) {
     super(data);

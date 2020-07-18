@@ -7,7 +7,7 @@ export class Score extends Entity {
     id: true,
     generated: true,
   })
-  ID_Score?: number;
+  ID_Score: number;
 
   @property({
     type: 'number',

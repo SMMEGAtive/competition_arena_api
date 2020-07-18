@@ -7,7 +7,7 @@ export class Submission extends Entity {
     id: true,
     generated: true,
   })
-  ID_Submission?: number;
+  ID_Submission: number;
 
   @property({
     type: 'number',
@@ -24,12 +24,12 @@ export class Submission extends Entity {
   @property({
     type: 'string',
   })
-  Description?: string;
+  Description: string;
 
   @property({
     type: 'string',
   })
-  Link?: string;
+  Link: string;
 
   @property({
     type: 'number',
@@ -46,7 +46,7 @@ export class Submission extends Entity {
   @property({
     type: 'date',
   })
-  Date_Modified?: string;
+  Date_Modified: string;
 
   constructor(data?: Partial<Submission>) {
     super(data);

@@ -33,6 +33,8 @@ import {inject} from '@loopback/core';
 import {FILE_UPLOAD_SERVICE} from '../keys';
 import {FileUploadService} from '../services';
 import {getDateNow} from '../utils/gFunctions';
+import {json} from 'express';
+import {toJSON} from '@loopback/testlab';
 
 export class ParticipationController {
   constructor(
@@ -63,22 +65,27 @@ export class ParticipationController {
     @requestBody(ParticipationRequestBody)
     participation: ParticipationData,
   ): Promise<Participation> {
-    const blankPaymentStatus: Omit<
+    let blankPaymentStatus: Omit<
       PaymentStatus,
       'ID_Payment_Status'
     > = new PaymentStatus();
     blankPaymentStatus.Status = 0;
-    const currentStatus = await this.paymentRepository.create(
-      blankPaymentStatus,
-    );
+    const currentStatus: PaymentStatus = await this.paymentRepository.create({
+      Image: '',
+      Status: 0,
+    });
 
-    const addedParticipation: Omit<
+    console.log(toJSON(blankPaymentStatus));
+
+    let addedParticipation: Omit<
       Participation,
       'ID_Participation'
     > = new Participation();
     addedParticipation.ID_Participant = participation.ID_Participant;
     addedParticipation.ID_Competition = participation.ID_Competition;
     addedParticipation.ID_Payment_Status = currentStatus.ID_Payment_Status;
+
+    console.log(toJSON(addedParticipation));
 
     return this.participationRepository.create(addedParticipation);
   }

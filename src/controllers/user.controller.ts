@@ -29,6 +29,8 @@ import {
   ChangePassword,
   RegisterRequestBody,
   Register,
+  ForgotPasswordRequestBody,
+  ForgotPassword,
 } from '../models/types';
 import {UserRepository, Credentials} from '../repositories';
 import {UserProfile, securityId, SecurityBindings} from '@loopback/security';
@@ -76,7 +78,8 @@ export class UserController {
   })
   async register(
     @requestBody(RegisterRequestBody) registerRequest: Register,
-  ): Promise<User> {
+  ): Promise<{status: string}> {
+    let status: string = '';
     const salt = await genSalt();
     const hashPassword = (
       await hash(registerRequest.Password, salt)
@@ -92,7 +95,17 @@ export class UserController {
     user.Gender = registerRequest.Gender;
     user.Date_of_Birth = registerRequest.Date_of_Birth;
 
-    return this.userRepository.create(user);
+    const newUser = this.userRepository.create(user);
+
+    if (newUser != null) {
+      status = 'Registration Success';
+    } else {
+      status = 'Registration Failed';
+    }
+
+    console.log(status);
+
+    return {status};
   }
 
   @get('/users/me', {
@@ -126,11 +139,32 @@ export class UserController {
       },
     },
   })
-  @authenticate('jwt')
   async requestToken(
-    @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: {email: 'string'},
+        },
+      },
+    })
+    email: {
+      email: string;
+    },
   ): Promise<{key: string}> {
     var key = Math.floor(Math.random() * 1000000).toString();
+    console.log(email);
+
+    let transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {user: process.env.EMAIL, pass: process.env.PASSWORD},
+    });
+
+    await transporter.sendMail({
+      from: 'stellius.megative@gmail.com',
+      to: email.email,
+      subject: 'Token Password Reset - Competition Arena',
+      html: `Token : ${key}`,
+    });
 
     return {key};
   }
@@ -174,13 +208,13 @@ export class UserController {
         transporter.sendMail({
           from: 'stellius.megative@gmail.com',
           to: currentUserProfile.email,
-          subject: 'Verifikasi Email Competition Arena',
+          subject: 'Verifikasi Email - Competition Arena',
           html: `Verifikasi Email anda <a href=${url}>Link Verify</a>`,
         });
       },
     );
 
-    return {key: 'yes'};
+    return {key: 'email sent'};
   }
 
   @get('/users/confirmation', {
@@ -231,9 +265,10 @@ export class UserController {
   async changePassword(
     @requestBody(ChangePasswordRequestBody) changePassRequest: ChangePassword,
     @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
-  ): Promise<void> {
+  ): Promise<{status: string}> {
     const id = Number(currentUserProfile[securityId]);
     const thisUser = await this.userRepository.findById(id);
+    let status = '';
 
     const passwordMatched = await this.passwordHasher.comparePassword(
       changePassRequest.old_password,
@@ -241,7 +276,7 @@ export class UserController {
     );
 
     if (!passwordMatched) {
-      throw new HttpErrors.Unauthorized(`The credentials are not correct.`);
+      status = `The credentials are not correct.`;
     }
 
     const newPasswordMatched =
@@ -249,7 +284,7 @@ export class UserController {
         changePassRequest.new_password_reinput,
       ) === 0;
     if (!newPasswordMatched) {
-      throw new HttpErrors.Unauthorized(`The credentials are not correct.`);
+      status = `The credentials are not correct.`;
     }
 
     const checkNewPassword = await this.passwordHasher.comparePassword(
@@ -258,9 +293,7 @@ export class UserController {
     );
 
     if (checkNewPassword) {
-      throw new HttpErrors.Unauthorized(
-        `New Password cannot be the same as the current Password.`,
-      );
+      status = `New Password cannot be the same as the current Password.`;
     }
 
     const salt = await genSalt();
@@ -269,12 +302,14 @@ export class UserController {
     ).toString();
 
     thisUser.Password = hashed;
+    if (this.userRepository.updateById(id, thisUser)) {
+      status = 'Success';
+    }
 
-    return this.userRepository.updateById(id, thisUser);
+    return {status};
   }
 
   @post('/users/forgotpass/change', {
-    security: OPERATION_SECURITY_SPEC,
     responses: {
       '200': {
         description: 'object',
@@ -286,21 +321,21 @@ export class UserController {
       },
     },
   })
-  @authenticate('jwt')
   async changeForgotPassword(
-    @requestBody(ChangePasswordRequestBody) changePassRequest: ChangePassword,
-    @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
+    @requestBody(ForgotPasswordRequestBody) changePassRequest: ForgotPassword,
   ): Promise<{status: string}> {
-    const id = Number(currentUserProfile[securityId]);
-    const thisUser = await this.userRepository.findById(id);
+    const thisUser: User[] = await this.userRepository.find({
+      where: {Email: changePassRequest.email},
+    });
+    let status = '';
 
     const passwordMatched = await this.passwordHasher.comparePassword(
-      changePassRequest.old_password,
-      thisUser.Password,
+      changePassRequest.new_password,
+      thisUser[0].Password,
     );
 
     if (!passwordMatched) {
-      throw new HttpErrors.Unauthorized(`The credentials are not correct.`);
+      status = `The credentials are not correct.`;
     }
 
     const newPasswordMatched =
@@ -308,18 +343,16 @@ export class UserController {
         changePassRequest.new_password_reinput,
       ) === 0;
     if (!newPasswordMatched) {
-      throw new HttpErrors.Unauthorized(`The credentials are not correct.`);
+      status = `Password yang dimasukkan tidak sama.`;
     }
 
     const checkNewPassword = await this.passwordHasher.comparePassword(
       changePassRequest.new_password,
-      thisUser.Password,
+      thisUser[0].Password,
     );
 
     if (checkNewPassword) {
-      throw new HttpErrors.Unauthorized(
-        `New Password cannot be the same as the current Password.`,
-      );
+      status = `Password sudah pernah digunakan.`;
     }
 
     const salt = await genSalt();
@@ -327,11 +360,11 @@ export class UserController {
       await hash(changePassRequest.new_password, salt)
     ).toString();
 
-    thisUser.Password = hashed;
+    thisUser[0].Password = hashed;
 
-    this.userRepository.updateById(id, thisUser);
+    this.userRepository.updateById(thisUser[0].ID_User, thisUser[0]);
 
-    const status = 'Success';
+    status = 'Success';
 
     return {status};
   }
@@ -407,22 +440,21 @@ export class UserController {
     responses: {
       '200': {
         description: 'User PATCH success count',
-        content: {'application/json': {schema: CountSchema}},
+        content: {
+          'application/json': {
+            schema: {type: 'string', properties: {status: {type: 'string'}}},
+          },
+        },
       },
     },
   })
   async updateAll(
-    @requestBody({
-      content: {
-        'application/json': {
-          schema: getModelSchemaRef(User, {partial: true}),
-        },
-      },
-    })
-    user: User,
-    @param.query.object('where', getWhereSchemaFor(User)) where?: Where<User>,
-  ): Promise<Count> {
-    return this.userRepository.updateAll(user, where);
+    @requestBody(RegisterRequestBody)
+    user: Register,
+    @param.path.number('id') id: number,
+  ): Promise<{status: String}> {
+    this.userRepository.updateById(id, user);
+    return {status: 'Success'};
   }
 
   @get('/users/get/{id}', {
@@ -437,15 +469,16 @@ export class UserController {
     return this.userRepository.findById(id);
   }
 
-  @patch('/users/update/{id}', {
+  @patch('/users/update/', {
+    security: OPERATION_SECURITY_SPEC,
     responses: {
       '204': {
         description: 'User PATCH success',
       },
     },
   })
+  @authenticate('jwt')
   async updateById(
-    @param.path.number('id') id: number,
     @requestBody({
       content: {
         'application/json': {
@@ -454,8 +487,14 @@ export class UserController {
       },
     })
     user: User,
-  ): Promise<void> {
-    await this.userRepository.updateById(id, user);
+    @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
+  ): Promise<string> {
+    await this.userRepository.updateById(
+      parseInt(currentUserProfile[securityId]),
+      user,
+    );
+
+    return 'Update Sukses';
   }
 
   @patch('/users/changeavatar/{id}', {

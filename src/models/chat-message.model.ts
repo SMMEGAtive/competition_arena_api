@@ -7,13 +7,13 @@ export class ChatMessage extends Entity {
     id: true,
     generated: true,
   })
-  ID_Message?: number;
+  ID_Message: number;
 
   @property({
     type: 'number',
     required: true,
   })
-  ID_Room?: number;
+  ID_Room: number;
 
   @property({
     type: 'number',
@@ -24,28 +24,28 @@ export class ChatMessage extends Entity {
   @property({
     type: 'string',
   })
-  Message?: string;
+  Message: string;
 
   @property({
     type: 'string',
   })
-  Image_URL?: string;
+  Image_URL: string;
 
   @property({
     type: 'date',
     required: true,
   })
-  Sent_Time?: string;
+  Sent_Time: string;
 
   @property({
     type: 'date',
   })
-  Delivered_Time?: string;
+  Delivered_Time: string;
 
   @property({
     type: 'date',
   })
-  Read_Time?: string;
+  Read_Time: string;
 
   constructor(data?: Partial<ChatMessage>) {
     super(data);

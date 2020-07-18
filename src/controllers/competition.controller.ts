@@ -35,12 +35,14 @@ import {
   ScoreRepository,
   ParticipationRepository,
   SubmissionRepository,
+  WinnerRepository,
 } from '../repositories';
 import {CompetitionRequestBody, CompetitionData} from '../models/types';
 import {OPERATION_SECURITY_SPEC} from '../utils/security-spec';
 import {authenticate} from '@loopback/authentication';
 import {inject} from '@loopback/core';
 import {UserProfile, securityId, SecurityBindings} from '@loopback/security';
+import {toJSON} from '@loopback/testlab';
 const globalFunction = require('../utils/gFunctions');
 
 export class CompetitionController {
@@ -57,6 +59,8 @@ export class CompetitionController {
     public partRepo: ParticipationRepository,
     @repository(SubmissionRepository)
     public submissionRepo: SubmissionRepository,
+    @repository(WinnerRepository)
+    public winnerRepo: WinnerRepository,
   ) {}
 
   async getTagID(tag: string): Promise<number> {
@@ -178,8 +182,36 @@ export class CompetitionController {
   async find(
     @param.query.object('filter', getFilterSchemaFor(Competition))
     filter?: Filter<Competition>,
-  ): Promise<Competition[]> {
-    return this.competitionRepository.find(filter);
+  ): Promise<CompetitionData[]> {
+    const competitions: Competition[] = await this.competitionRepository.find();
+
+    const competitionsWithTags: CompetitionData[] = [];
+    for (let i: number = 0; i < competitions.length; i++) {
+      let taglist: Taglist[] = await this.taglistRepository.find({
+        where: {ID_Competition: competitions[i].ID_Competition},
+      });
+      let tags: string[] = [];
+      for (let j: number = 0; j < taglist.length; j++) {
+        let tag: Tags = await this.tagsRepo.findById(taglist[j].ID_Tags);
+        tags.push(tag.Tag_Name);
+      }
+
+      let newCompetitionData: CompetitionData = {
+        ID_Competition: competitions[i].ID_Competition,
+        ID_Host: competitions[i].ID_Host,
+        Title: competitions[i].Title,
+        Description: competitions[i].Description,
+        Registration_Start: competitions[i].Registration_Start,
+        Registration_End: competitions[i].Registration_End,
+        Verification_End: competitions[i].Verification_End,
+        Execution_Start: competitions[i].Execution_Start,
+        Execution_End: competitions[i].Execution_End,
+        Announcement_Date: competitions[i].Announcement_Date,
+        Tags: tags,
+      };
+      competitionsWithTags.push(newCompetitionData);
+    }
+    return competitionsWithTags;
   }
 
   @get('/competitions/get/{id}', {
@@ -190,11 +222,41 @@ export class CompetitionController {
       },
     },
   })
-  async findById(@param.path.number('id') id: number): Promise<Competition> {
-    return this.competitionRepository.findById(id);
+  async findById(
+    @param.path.number('id') id: number,
+  ): Promise<CompetitionData> {
+    const competition: Competition = await this.competitionRepository.findById(
+      id,
+    );
+
+    const competitionsWithTags: CompetitionData[] = [];
+    let taglist: Taglist[] = await this.taglistRepository.find({
+      where: {ID_Competition: competition.ID_Competition},
+    });
+    let tags: string[] = [];
+    for (let j: number = 0; j < taglist.length; j++) {
+      let tag: Tags = await this.tagsRepo.findById(taglist[j].ID_Tags);
+      tags.push(tag.Tag_Name);
+    }
+
+    let newCompetitionData: CompetitionData = {
+      ID_Competition: competition.ID_Competition,
+      ID_Host: competition.ID_Host,
+      Title: competition.Title,
+      Description: competition.Description,
+      Registration_Start: competition.Registration_Start,
+      Registration_End: competition.Registration_End,
+      Verification_End: competition.Verification_End,
+      Execution_Start: competition.Execution_Start,
+      Execution_End: competition.Execution_End,
+      Announcement_Date: competition.Announcement_Date,
+      Tags: tags,
+    };
+
+    return newCompetitionData;
   }
 
-  @get('/competitions/get/keyword/', {
+  @post('/competitions/get/keyword/', {
     responses: {
       '200': {
         description: 'Competition model instance',
@@ -219,7 +281,7 @@ export class CompetitionController {
       keyword: string;
       tags?: string[];
     },
-  ): Promise<Competition[]> {
+  ): Promise<CompetitionData[]> {
     let comps: Competition[] = [];
     let taglist: Taglist[] = [];
     if (request.tags) {
@@ -250,7 +312,34 @@ export class CompetitionController {
       });
     }
 
-    return comps;
+    let compsWithTags: CompetitionData[] = [];
+    for (let i: number = 0; i < comps.length; i++) {
+      let taglist: Taglist[] = await this.taglistRepository.find({
+        where: {ID_Competition: comps[i].ID_Competition},
+      });
+      let tags: string[] = [];
+      for (let j: number = 0; j < taglist.length; j++) {
+        let tag: Tags = await this.tagsRepo.findById(taglist[j].ID_Tags);
+        tags.push(tag.Tag_Name);
+      }
+
+      let newCompetitionData: CompetitionData = {
+        ID_Competition: comps[i].ID_Competition,
+        ID_Host: comps[i].ID_Host,
+        Title: comps[i].Title,
+        Description: comps[i].Description,
+        Registration_Start: comps[i].Registration_Start,
+        Registration_End: comps[i].Registration_End,
+        Verification_End: comps[i].Verification_End,
+        Execution_Start: comps[i].Execution_Start,
+        Execution_End: comps[i].Execution_End,
+        Announcement_Date: comps[i].Announcement_Date,
+        Tags: tags,
+      };
+      compsWithTags.push(newCompetitionData);
+    }
+
+    return compsWithTags;
   }
 
   @patch('/competitions/update/{id}', {
@@ -378,8 +467,6 @@ export class CompetitionController {
   })
   @authenticate('jwt')
   async setWinner(
-    @requestBody(CompetitionRequestBody)
-    competition: CompetitionData,
     @param.path.number('id') id: number,
     @inject(SecurityBindings.USER) currentUserProfile: UserProfile,
   ): Promise<{status: string}> {
@@ -387,74 +474,57 @@ export class CompetitionController {
       where: {ID_Competition: id},
     });
 
-    const listScore: Score[] = [];
+    const listScore: {
+      ID_Participant: number;
+      ID_Submission: number;
+      Total_Score: number;
+    }[] = [];
     for (let i: number = 0; i < listParticipations.length; i++) {
+      console.log(`IDPart: ${listParticipations[i].ID_Participation}`);
       let submission: Submission | null = await this.submissionRepo.findOne({
         where: {ID_Participation: listParticipations[i].ID_Participation},
       });
+      console.log(`IDSub: ${submission?.ID_Submission}`);
 
       if (submission) {
         let score: Score[] = await this.scoreRepo.find({
           where: {ID_Submission: submission.ID_Submission},
         });
-        listScore.push(score[0]);
+
+        let totalScore: number = 0;
+
+        if (score != undefined) {
+          for (let i: number = 0; i < score.length; i++) {
+            totalScore += score[i].Score;
+          }
+        } else {
+          totalScore = 0;
+        }
+
+        listScore.push({
+          ID_Participant: submission.ID_Participation,
+          ID_Submission: submission.ID_Submission,
+          Total_Score: totalScore,
+        });
       }
     }
 
-    class AccumulatedScore {
-      ID_Submission: number;
-      Total_Score: number;
-      constructor() {}
-    }
+    listScore.sort((a, b) => b.Total_Score - a.Total_Score);
 
-    const accumulatedScore: AccumulatedScore[] = [];
     for (let i: number = 0; i < listScore.length; i++) {
-      if (accumulatedScore.length == 0) {
-        let score: AccumulatedScore = new AccumulatedScore();
-        score.ID_Submission = listScore[0].ID_Submission;
-        score.Total_Score = listScore[0].Score;
-        accumulatedScore.push(score);
-      } else {
-        let simileExist: boolean = false;
-        for (let j: number = 0; j < accumulatedScore.length; j++) {
-          if (accumulatedScore[j].ID_Submission == listScore[i].ID_Submission) {
-            simileExist = true;
-            accumulatedScore[j].Total_Score += listScore[i].Score;
-          }
-        }
-
-        if (!simileExist) {
-          let score: AccumulatedScore = new AccumulatedScore();
-          score.ID_Submission = listScore[i].ID_Submission;
-          score.Total_Score = listScore[i].Score;
-          accumulatedScore.push(score);
-        }
-      }
+      console.log(
+        `Number ${i + 1} / Submission ${listScore[i].ID_Submission} = ${
+          listScore[i].Total_Score
+        }`,
+      );
     }
 
-    const threeHighest: AccumulatedScore[] = [];
-    for (let i: number = 0; i < accumulatedScore.length; i++) {
-      if (threeHighest.length != 3) {
-        threeHighest.push(accumulatedScore[i]);
-      } else {
-        let indexUsed: number = -1;
-        let deviation: number = 0;
-        for (let j: number = 0; j < threeHighest.length; j++) {
-          if (accumulatedScore[i].Total_Score > threeHighest[j].Total_Score) {
-            let currentDeviation: number =
-              accumulatedScore[i].Total_Score - threeHighest[j].Total_Score;
-            if (deviation < currentDeviation) {
-              indexUsed = j;
-              deviation = currentDeviation;
-            }
-          }
-        }
+    await this.winnerRepo.create({
+      First: listScore[0].ID_Participant,
+      Second: listScore[1].ID_Participant,
+      Third: listScore[2].ID_Participant,
+    });
 
-        if (indexUsed != -1) {
-          threeHighest[indexUsed] = accumulatedScore[i];
-        }
-      }
-    }
     return {status: 'Success'};
   }
 

@@ -47,12 +47,14 @@ export const ChangePasswordRequestBody = {
 // FORGOT PASSWORD
 //
 export type ForgotPassword = {
+  email: 'string';
   new_password: 'string';
   new_password_reinput: 'string';
 };
 
 const ForgotPasswordSchema = {
   properties: {
+    email: {type: 'string'},
     new_password: {type: 'string', minLength: 8},
     new_password_reinput: {type: 'string', minLength: 8},
   },
@@ -166,6 +168,7 @@ export const ParticipantTeamRequestBody = {
 // CREATE COMPETITION
 //
 export type CompetitionData = {
+  ID_Competition: number;
   ID_Host: number;
   Title: string;
   Description: string;
@@ -180,6 +183,7 @@ export type CompetitionData = {
 
 const CompetitionSchema = {
   properties: {
+    ID_Competition: {type: 'number'},
     ID_Host: {type: 'number'},
     Title: {type: 'string'},
     Description: {type: 'string'},

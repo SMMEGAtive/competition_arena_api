@@ -18,3 +18,4 @@ export * from './winner.controller';
 export * from './taglist.controller';
 export * from './tags.controller';
 export * from './file-upload.controller';
+export * from './statistic.controller';

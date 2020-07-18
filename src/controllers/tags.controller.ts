@@ -16,13 +16,15 @@ import {
   del,
   requestBody,
 } from '@loopback/rest';
-import {Tags} from '../models';
-import {TagsRepository} from '../repositories';
+import {Tags, Taglist} from '../models';
+import {TagsRepository, TaglistRepository} from '../repositories';
 
 export class TagsController {
   constructor(
     @repository(TagsRepository)
-    public tagsRepository : TagsRepository,
+    public tagsRepository: TagsRepository,
+    @repository(TaglistRepository)
+    public taglistRepository: TaglistRepository,
   ) {}
 
   @post('/tags', {
@@ -57,9 +59,7 @@ export class TagsController {
       },
     },
   })
-  async count(
-    @param.where(Tags) where?: Where<Tags>,
-  ): Promise<Count> {
+  async count(@param.where(Tags) where?: Where<Tags>): Promise<Count> {
     return this.tagsRepository.count(where);
   }
 
@@ -78,9 +78,7 @@ export class TagsController {
       },
     },
   })
-  async find(
-    @param.filter(Tags) filter?: Filter<Tags>,
-  ): Promise<Tags[]> {
+  async find(@param.filter(Tags) filter?: Filter<Tags>): Promise<Tags[]> {
     return this.tagsRepository.find(filter);
   }
 
@@ -118,11 +116,38 @@ export class TagsController {
       },
     },
   })
-  async findById(
+  async findById(@param.path.number('id') id: number): Promise<Tags> {
+    return this.tagsRepository.findById(id);
+  }
+
+  @get('/tags/get/competitions/{id}', {
+    responses: {
+      '200': {
+        description: 'Tags model instance',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'string',
+              properties: {Tags: {type: 'array', item: {type: 'string'}}},
+            },
+          },
+        },
+      },
+    },
+  })
+  async findByCompetition(
     @param.path.number('id') id: number,
-    @param.filter(Tags, {exclude: 'where'}) filter?: FilterExcludingWhere<Tags>
-  ): Promise<Tags> {
-    return this.tagsRepository.findById(id, filter);
+  ): Promise<{Tags: String[]}> {
+    const taglist: Taglist[] = await this.taglistRepository.find({
+      where: {ID_Competition: id},
+    });
+
+    let tags: String[] = [];
+    for (let i: number = 0; i < taglist.length; i++) {
+      let tag: Tags = await this.tagsRepository.findById(taglist[i].ID_Tags);
+      tags.push(tag.Tag_Name);
+    }
+    return {Tags: tags};
   }
 
   @patch('/tags/{id}', {
